@@ -9,22 +9,36 @@ namespace WindowsFormsApplication1
 {
   public partial class MainForm : Form
   {
+    /// <summary>
+    /// Map
+    /// </summary>
     private Map _map;
-    private Bitmap _image;//Для эмуляции класса TGame
+    /// <summary>
+    /// Game class emulator
+    /// </summary>
+    private Bitmap _image;
+    /// <summary>
+    /// Start position for map filling by selected map element
+    /// </summary>
     private Point _lineStart = new Point(-1, -1);
 
-    #region Собственные методы
+    #region Methods, not events
 
-    private void DrawMap(int x = -1, int y = -1)//Вывод изображения карты в MapPictBox
+    /// <summary>
+    /// Draws the map obn MapPictBox
+    /// </summary>
+    /// <param name="x">The x.</param>
+    /// <param name="y">The y.</param>
+    private void DrawMap(int x = -1, int y = -1)
     {
-      _image = new Bitmap(_map.Width * Settings.ElemSize, _map.Height * Settings.ElemSize);//Для "ускорения" вывода
-      Graphics canva = Graphics.FromImage(_image);//создали канву
-      _map.ShowOnGraphics(canva);
-      MapPictBox.Width = _map.Width * Settings.ElemSize;//Установили размеры
+      _image = new Bitmap(_map.Width * Settings.ElemSize, _map.Height * Settings.ElemSize);
+      Graphics canva = Graphics.FromImage(_image);
+      _map.ShowOnGraphics(canva,true);
+      MapPictBox.Width = _map.Width * Settings.ElemSize;
       MapPictBox.Height = _map.Height * Settings.ElemSize;
       if (ShowGridCheckBox.Checked)
         DrawGrid(canva);
-      if (x != -1)//Если карта перирисовывается при попытке добавления элемента, чтобы не было моргания линии
+      if (x != -1)//Fixing graphical lag, when drawing line
       {
         canva.DrawLine(new Pen(new SolidBrush(Color.Yellow), (float)0.0000001), new Point(_lineStart.X * Settings.ElemSize + Settings.ElemSize / 2,
           _lineStart.Y * Settings.ElemSize + Settings.ElemSize / 2), new Point(x, y));
@@ -35,37 +49,55 @@ namespace WindowsFormsApplication1
         MapPictBox.Image = _image;
     }
 
-    private void DrawGrid(Graphics canva)//Вывод вспомогательной сетки
+    /// <summary>
+    /// Draws the grid.
+    /// </summary>
+    /// <param name="canva">The canva.</param>
+    private void DrawGrid(Graphics canva)
     {
-      for (int i = 1; i < Math.Max(MapPictBox.Width, MapPictBox.Height); i++)//нанесли сетку, потом процедуру вынесу
+      for (int i = 1; i < Math.Max(MapPictBox.Width, MapPictBox.Height); i++)
       {
         canva.DrawLine(new Pen(Brushes.Black, 1), new Point(i * Settings.ElemSize, 0), new Point(i * Settings.ElemSize, MapPictBox.Height));
         canva.DrawLine(new Pen(Brushes.Black, 1), new Point(0, i * Settings.ElemSize), new Point(MapPictBox.Width, i * Settings.ElemSize));
       }
     }
 
+    /// <summary>
+    /// Maps the save check. If map don't saved and user trying to load/create new map
+    /// </summary>
+    /// <returns></returns>
     private bool MapSaveCheck()
-    //Проверка на создание/загрузку карты, если она ещё не сохранена, а мы пытаемся создать/загрузить новую
     {
       if (Convert.ToInt32(MapPictBox.Tag) != 0)
         if (MessageBox.Show("Map not saved.", "Map not saved! Save Map?", MessageBoxButtons.YesNo) == DialogResult.Yes)
         {
           MapSaveButton_Click(this, new EventArgs());
           if (Convert.ToInt32(MapPictBox.Tag) != 0)
-            return false;//Если вдруг произошла ошибка при сохранении
+            return false;//Saving error
         }
-      return true;//Если ответят что не хотят сохранять, то текущее состояние будет утеряно
+      return true;
     }
 
+    /// <summary>
+    /// Called when map was created/loaded.
+    /// </summary>
+    private void OnMapCreating()
+    {
+      MapWidthLabel.Text = "Width in elements: " + _map.Width;
+      MapHeightLabel.Text = "Height in elements: " + _map.Height;
+    }
     #endregion
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MainForm"/> class.
+    /// </summary>
     public MainForm()
     {
       InitializeComponent();
       _map = null;
-      int countLines = (Map.Bitmaps.Length) / (MapElementsPicBox.Width / 20);//Число строк элементов карты
-      _image = new Bitmap(120, ((Map.Bitmaps.Length) / (MapElementsPicBox.Width / 20) + 1) * 20);//Для рисования
-      Graphics canva = Graphics.FromImage(_image);//создали канву
+      int countLines = (Map.Bitmaps.Length) / (MapElementsPicBox.Width / 20);//Number of lines with map elements
+      _image = new Bitmap(120, ((Map.Bitmaps.Length) / (MapElementsPicBox.Width / 20) + 1) * 20);
+      Graphics canva = Graphics.FromImage(_image);
       for (int i = 0; i <= countLines; i++)
       {
         int k = (Map.Bitmaps.Length - i * countLines) >= (MapElementsPicBox.Width / 20) - 1 ?
@@ -76,11 +108,16 @@ namespace WindowsFormsApplication1
       MapElementsPicBox.Image = _image;
     }
 
+    /// <summary>
+    /// Create new map.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void NewMapButton_Click(object sender, EventArgs e)
     {
-      if (!MapSaveCheck())//Если карту не сохранили, новую не создадим
+      if (!MapSaveCheck())//if Save error
         return;
-      //Если нажали применить параметры к новой карте
+      //From for creating new map
       NewMapSettingsForm settingsForm = new NewMapSettingsForm();
       if (settingsForm.ShowDialog() != DialogResult.OK) return;
 
@@ -90,19 +127,21 @@ namespace WindowsFormsApplication1
         MessageBox.Show("Incorrect map parametrs");
         return;
       }
-      MapWidthLabel.Text = "Ширина в элементах: " + mapProp.X;
-      MapHeightLabel.Text = "Высота в элементах: " + mapProp.Y;
-
+      _map = new Map(mapProp.X, mapProp.Y);
+      OnMapCreating();
       MapPictBox.Width = mapProp.X * Settings.ElemSize;//Установили размеры
       MapPictBox.Height = mapProp.Y * Settings.ElemSize;
-
-      _map = new Map(mapProp.X, mapProp.Y);
       DrawMap();
 
       MapPictBox.Tag = 1;
     }
 
     #region Save/Load
+    /// <summary>
+    /// Map loading
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void MapLoadButton_Click(object sender, EventArgs e)
     {
       if (!MapSaveCheck())
@@ -111,20 +150,23 @@ namespace WindowsFormsApplication1
       try
       {
         _map = new Map(MapFileOpenDialog.FileName);
+        OnMapCreating();
       }
       catch
       {
         MessageBox.Show("Map loading error");
         return;
       }
-      MapPictBox.Tag = 0;//Флаг того что карта была сохранена и можно будет создавать
-      //загружать новую без предупреждений
+      MapPictBox.Tag = 0;//Flag. If 0 then we can create, load new map without question
       DrawMap();
-      MapWidthLabel.Text = "Ширина в элементах: " + _map.Width;
-      MapHeightLabel.Text = "Высота в элементах: " + _map.Height;
       MessageBox.Show("Map loaded Successful");
     }
 
+    /// <summary>
+    /// Map saving
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void MapSaveButton_Click(object sender, EventArgs e)
     {
       if ((_map == null) || (MapFileSaveDialog.ShowDialog() != DialogResult.OK)) return;
@@ -133,14 +175,18 @@ namespace WindowsFormsApplication1
         MessageBox.Show("Map saving error");
       else
       {
-        MapPictBox.Tag = 0;//Флаг того что карта была сохранена и можно будет создавать
-        //загружать новую без предупреждений
+        MapPictBox.Tag = 0;//Flag. If 0 then we can create, load new map without question
         MessageBox.Show("Map saved successful");
       }
     }
 
     #endregion
 
+    /// <summary>
+    /// Selecting type of element, which user want to add to the map
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapElementsPicBox_MouseUp(object sender, MouseEventArgs e)
     {
       int num = (e.Y / 20) * ((Map.Bitmaps.Length) / (MapElementsPicBox.Width / 20)) + e.X / 20;
@@ -154,6 +200,11 @@ namespace WindowsFormsApplication1
       CurrElemPictBox.Tag = 0;
     }
 
+    /// <summary>
+    /// Add new elements to map
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapPictBox_MouseUp(object sender, MouseEventArgs e)
     {
       if (_map != null)
@@ -215,11 +266,16 @@ namespace WindowsFormsApplication1
         #endregion
         DrawMap();
         _lineStart = new Point(-1, -1);
-        MapPictBox.Tag = 1;//Нужно сохранить
+        MapPictBox.Tag = 1;//Save needed
       }
     }
 
     #region PictureRotate
+    /// <summary>
+    /// Map element rotating. Right
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void TurnRightButton_Click(object sender, EventArgs e)
     {
       int tmp = Convert.ToInt32(CurrElemPictBox.Tag);
@@ -237,6 +293,11 @@ namespace WindowsFormsApplication1
       CurrElemPictBox.Tag = tmp;
     }
 
+    /// <summary>
+    /// Map element rotating. Left
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void TurnLeftButton_Click(object sender, EventArgs e)
     {
       int tmp = Convert.ToInt32(CurrElemPictBox.Tag);
@@ -255,12 +316,22 @@ namespace WindowsFormsApplication1
     }
     #endregion
 
+    /// <summary>
+    /// Grid check box changed
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void ShowGridCheckBox_CheckedChanged(object sender, EventArgs e)
     {
       if (_map != null)
         DrawMap();
     }
 
+    /// <summary>
+    /// Start drawing position selector
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapPictBox_MouseDown(object sender, MouseEventArgs e)
     {
       if ((Convert.ToInt32(MapElementsPicBox.Tag) == -1) || (Convert.ToInt32(StartSelectButton.Tag) == 1)
@@ -269,6 +340,11 @@ namespace WindowsFormsApplication1
       _lineStart = new Point(e.X / Settings.ElemSize, e.Y / Settings.ElemSize);
     }
 
+    /// <summary>
+    /// Mouse moving on map area. Draws line, if map element to drawing was selected
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapPictBox_MouseMove(object sender, MouseEventArgs e)
     {
       if (_map == null)
@@ -279,6 +355,11 @@ namespace WindowsFormsApplication1
         DrawMap(e.X, e.Y);
     }
 
+    /// <summary>
+    /// Start select button clicked, now next user click on map will select starting way position
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void StartSelectButton_Click(object sender, EventArgs e)
     {
       if (_map == null)
@@ -287,6 +368,11 @@ namespace WindowsFormsApplication1
       FinishSelectButton.Tag = 0;
     }
 
+    /// <summary>
+    /// Finish select button clicked, now next user click on map will select finish way position
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void FinishSelectButton_Click(object sender, EventArgs e)
     {
       if (_map == null)
@@ -295,6 +381,11 @@ namespace WindowsFormsApplication1
       StartSelectButton.Tag = 0;
     }
 
+    /// <summary>
+    /// Map way updating(For testing)
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
     private void WayUpdateButton_Click(object sender, EventArgs e)
     {
       if (_map == null) return;
