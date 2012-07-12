@@ -33,7 +33,7 @@ namespace WindowsFormsApplication1
     {
       _image = new Bitmap(_map.Width * Settings.ElemSize, _map.Height * Settings.ElemSize);
       Graphics canva = Graphics.FromImage(_image);
-      _map.ShowOnGraphics(canva,true);
+      _map.ShowOnGraphics(canva, true);
       MapPictBox.Width = _map.Width * Settings.ElemSize;
       MapPictBox.Height = _map.Height * Settings.ElemSize;
       if (ShowGridCheckBox.Checked)
@@ -207,6 +207,8 @@ namespace WindowsFormsApplication1
     /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapPictBox_MouseUp(object sender, MouseEventArgs e)
     {
+      if (e.Button != MouseButtons.Left)
+        return;
       if (_map != null)
       {
         #region Start/Finish select
@@ -334,6 +336,8 @@ namespace WindowsFormsApplication1
     /// <param name="e">The <see cref="System.Windows.Forms.MouseEventArgs"/> instance containing the event data.</param>
     private void MapPictBox_MouseDown(object sender, MouseEventArgs e)
     {
+      if (e.Button != MouseButtons.Left)
+        return;
       if ((Convert.ToInt32(MapElementsPicBox.Tag) == -1) || (Convert.ToInt32(StartSelectButton.Tag) == 1)
         || (Convert.ToInt32(FinishSelectButton.Tag) == 1))
         return;
