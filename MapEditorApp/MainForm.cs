@@ -152,9 +152,9 @@ namespace WindowsFormsApplication1
         _map = new Map(MapFileOpenDialog.FileName);
         OnMapCreating();
       }
-      catch
+      catch (Exception exc)
       {
-        MessageBox.Show("Map loading error");
+        MessageBox.Show("Map loading error:\n" + exc.StackTrace);
         return;
       }
       MapPictBox.Tag = 0;//Flag. If 0 then we can create, load new map without question
