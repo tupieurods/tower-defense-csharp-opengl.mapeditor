@@ -18,6 +18,10 @@ namespace WindowsFormsApplication1
     /// </summary>
     private Bitmap _image;
     /// <summary>
+    /// Graphical buffer
+    /// </summary>
+    private BufferedGraphics _graphicalBuffer;
+    /// <summary>
     /// Start position for map filling by selected map element
     /// </summary>
     private Point _lineStart = new Point(-1, -1);
@@ -31,22 +35,24 @@ namespace WindowsFormsApplication1
     /// <param name="y">The y.</param>
     private void DrawMap(int x = -1, int y = -1)
     {
-      _image = new Bitmap(_map.Width * Settings.ElemSize, _map.Height * Settings.ElemSize);
-      Graphics canva = Graphics.FromImage(_image);
-      _map.ShowOnGraphics(canva, true);
-      MapPictBox.Width = _map.Width * Settings.ElemSize;
-      MapPictBox.Height = _map.Height * Settings.ElemSize;
-      if (ShowGridCheckBox.Checked)
-        DrawGrid(canva);
+      Graphics canva = _graphicalBuffer.Graphics;
       if (x != -1)//Fixing graphical lag, when drawing line
       {
+        canva.DrawImage(_image, new Point(0, 0));
         canva.DrawLine(new Pen(new SolidBrush(Color.Yellow), (float)0.0000001), new Point(_lineStart.X * Settings.ElemSize + Settings.ElemSize / 2,
           _lineStart.Y * Settings.ElemSize + Settings.ElemSize / 2), new Point(x, y));
-        Graphics tmp = MapPictBox.CreateGraphics();
-        tmp.DrawImage(_image, new Point(0, 0));
       }
       else
+      {
+        Graphics mapCanva = Graphics.FromImage(_image);
+        _map.ShowOnGraphics(mapCanva, true);
+        MapPictBox.Width = _map.Width * Settings.ElemSize;
+        MapPictBox.Height = _map.Height * Settings.ElemSize;
+        if (ShowGridCheckBox.Checked)
+          DrawGrid(mapCanva);
         MapPictBox.Image = _image;
+      }
+      _graphicalBuffer.Render();
     }
 
     /// <summary>
@@ -83,8 +89,12 @@ namespace WindowsFormsApplication1
     /// </summary>
     private void OnMapCreating()
     {
+      MapPictBox.Width = _map.Width * Settings.ElemSize;//Установили размеры
+      MapPictBox.Height = _map.Height * Settings.ElemSize;
       MapWidthLabel.Text = "Width in elements: " + _map.Width;
       MapHeightLabel.Text = "Height in elements: " + _map.Height;
+      _image = new Bitmap(_map.Width * Settings.ElemSize, _map.Height * Settings.ElemSize);
+      _graphicalBuffer = BufferedGraphicsManager.Current.Allocate(MapPictBox.CreateGraphics(), new Rectangle(new Point(0, 0), MapPictBox.Size));
     }
     #endregion
 
@@ -129,10 +139,7 @@ namespace WindowsFormsApplication1
       }
       _map = new Map(mapProp.X, mapProp.Y);
       OnMapCreating();
-      MapPictBox.Width = mapProp.X * Settings.ElemSize;//Установили размеры
-      MapPictBox.Height = mapProp.Y * Settings.ElemSize;
       DrawMap();
-
       MapPictBox.Tag = 1;
     }
 
